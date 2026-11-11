@@ -1,3 +1,4 @@
+
 """Project settings. Edit REGION_NAME and NOAA_BBOX_FALLBACK when needed."""
 from pathlib import Path
 
@@ -18,16 +19,14 @@ MAX_SAMPLE_VALUES = 50_000
 MAX_SPATIAL_ROWS_PER_VARIABLE = 100_000
 
 # NOAA Coral Reef Watch v3.1
-NOAA_DAYS = 30  # increase to 90 for a longer time series
-NOAA_MAP_STRIDE = 1  # 1 = native ~5 km grid; 2 = fewer points, smaller CSV
+NOAA_DAYS = 30
+NOAA_MAP_STRIDE = 1
 NOAA_DATASET_ID = "dhw_5km"
 NOAA_ERDDAP_BASE = (
     "https://pae-paha.pacioos.hawaii.edu/erddap/griddap/dhw_5km.nc"
 )
 
 # Used only if no valid geographic bounds can be extracted from NASA files.
-# These coordinates are a broad fallback for the Great Barrier Reef.
-# If you choose another NASA region, change this bounding box too.
 NOAA_BBOX_FALLBACK = {
     "lat_min": -25.0,
     "lat_max": -10.0,
@@ -74,4 +73,5 @@ NOAA_OUTPUTS = [
     "noaa_latest_map.csv",
     "noaa_alert_summary.csv",
     "noaa_config.json",
+    "noaa_sst_history_daily.csv",
 ]

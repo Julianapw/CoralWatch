@@ -1,63 +1,97 @@
-﻿"""Small, native presentation components and stable NASA display labels."""
+﻿
+"""Reusable Streamlit components and stable NASA display labels."""
+
 from html import escape
+
 import pandas as pd
 import streamlit as st
 
 
 def area_labels(catalog):
-    """Derive labels from the complete catalog, never from the filtered subset."""
-    if 'flight_line' not in catalog:
+    """Create display labels from the complete NASA flight catalog."""
+    if "flight_line" not in catalog:
         return {}
-    d = catalog.dropna(subset=['flight_line']).copy()
-    d['_sort_code'] = d.flight_line.astype(str)
-    if 'observation_date' in d:
-        d = d.sort_values(['observation_date', '_sort_code'], kind='stable', na_position='last')
+
+    data = catalog.dropna(subset=["flight_line"]).copy()
+    data["_sort_code"] = data["flight_line"].astype(str)
+
+    if "observation_date" in data:
+        data = data.sort_values(
+            ["observation_date", "_sort_code"],
+            kind="stable",
+            na_position="last",
+        )
     else:
-        d = d.sort_values('_sort_code', kind='stable')
-    d = d.drop_duplicates('flight_line')
+        data = data.sort_values("_sort_code", kind="stable")
+
+    data = data.drop_duplicates("flight_line")
+
     result = {}
-    for number, (_, row) in enumerate(d.iterrows(), 1):
-        date = row.get('observation_date')
-        suffix = f' · voo de {date:%d/%m/%Y}' if pd.notna(date) else ' · data não informada'
-        result[row.flight_line] = f'Área {number:02d}' + suffix
+
+    for number, (_, row) in enumerate(data.iterrows(), 1):
+        date = row.get("observation_date")
+
+        suffix = (
+            f" | flight date {date:%Y-%m-%d}"
+            if pd.notna(date)
+            else " | date not available"
+        )
+
+        result[row["flight_line"]] = f"Area {number:02d}" + suffix
+
     return result
 
 
 def display_name(code):
-    return st.session_state.get('_cw_area_labels', {}).get(code, str(code))
+    return st.session_state.get("_cw_area_labels", {}).get(
+        code,
+        str(code),
+    )
 
 
 def display_frame(frame):
-    """Add an axis label to a copy; source identifiers and values stay unchanged."""
-    d = frame.copy()
-    if 'flight_line' in d:
-        d['_area'] = d.flight_line.map(display_name)
-    return d
+    """Add a presentation label without changing source identifiers."""
+    data = frame.copy()
+
+    if "flight_line" in data:
+        data["_area"] = data["flight_line"].map(display_name)
+
+    return data
 
 
 def data_source_badge(source):
-    text = 'NASA CORAL · observações históricas' if source == 'NASA' else 'NOAA Coral Reef Watch · data observada'
+    text = (
+        "NASA CORAL | historical observations"
+        if source == "NASA"
+        else "NOAA Coral Reef Watch | observation date"
+    )
     return f'<p class="cw-source">{text}</p>'
 
 
-def section_header(title, subtitle='', source='NASA'):
+def section_header(title, subtitle="", source="NASA"):
     st.subheader(title)
+
     if subtitle:
         st.caption(subtitle)
 
 
-def kpi_card(title, value, detail, key, source='NASA'):
+def kpi_card(title, value, detail, key, source="NASA"):
     st.metric(title, value)
     st.caption(detail)
 
 
 def alert_card(code, title, count, detail):
     risk_pill(title, code)
-    st.caption(f'{count} · {detail}')
+    st.caption(f"{count} | {detail}")
 
 
 def disclaimer():
-    st.caption('NASA CORAL apresenta observações históricas. NOAA fornece indicadores de estresse térmico e risco de branqueamento na data informada. Esses dados não diagnosticam mortalidade individual de corais.')
+    st.caption(
+        "NASA CORAL provides historical observations. NOAA provides "
+        "thermal-stress and bleaching-risk indicators for the reported "
+        "dates. These products do not diagnose the mortality of individual "
+        "coral colonies."
+    )
 
 
 def hero(title, subtitle):
@@ -70,7 +104,13 @@ def insight(text):
 
 
 def empty_chart(text):
-    st.markdown(f'<div class="cw-empty"><strong>Sem observações disponíveis</strong>{escape(text)}</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="cw-empty">'
+        "<strong>No observations available</strong>"
+        + escape(text)
+        + "</div>",
+        unsafe_allow_html=True,
+    )
 
 
 def summary_item(title, value):
@@ -79,5 +119,17 @@ def summary_item(title, value):
 
 
 def risk_pill(text, code):
-    category = str(int(code)) if code in range(5) else 'other'
-    st.markdown(f'<span class="cw-risk cw-risk-{category}">{escape(text)}</span>', unsafe_allow_html=True)
+    try:
+        numeric_code = float(code)
+        if numeric_code.is_integer() and 0 <= numeric_code <= 4:
+            category = str(int(numeric_code))
+        else:
+            category = "other"
+    except (TypeError, ValueError):
+        category = "other"
+
+    st.markdown(
+        f'<span class="cw-risk cw-risk-{category}">'
+        f"{escape(str(text))}</span>",
+        unsafe_allow_html=True,
+    )

@@ -1,5 +1,7 @@
+
 numpy>=1.26
 pandas>=2.1
+scipy>=1.11
 xarray>=2024.1
 netCDF4>=1.6
 h5netcdf>=1.3

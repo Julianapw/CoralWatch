@@ -1,12 +1,40 @@
-"""Presentation facade. Reuse the existing cached loader without changing any data logic."""
+
+"""
+Presentation facade for the CoralWatch dashboard data loader.
+
+Keeps NASA and NOAA data accessible through separate functions,
+while preserving the independent filtering logic of each source.
+"""
+
 from dashboard.data import load as load_bundle
 
 
 def load_nasa(bundle):
-    """NASA frames retain their existing adapted schema and units."""
-    return {name: bundle[name] for name in ('catalog', 'benthic', 'spatial')}
+    """
+    Return the NASA datasets used by the dashboard.
+
+    NASA data includes the flight catalog, benthic composition
+    summaries and georeferenced spatial observations.
+    """
+    return {
+        "catalog": bundle["catalog"],
+        "benthic": bundle["benthic"],
+        "spatial": bundle["spatial"],
+    }
 
 
 def load_noaa(bundle):
-    """NOAA remains independent from NASA filters and historical period maxima."""
-    return {name: bundle[name] for name in ('noaa', 'pixels', 'source', 'regional')}
+    """
+    Return the NOAA datasets used by the dashboard.
+
+    Includes recent daily observations, the latest pixel map,
+    historical SST data for long-term trend analysis and
+    metadata describing the selected source.
+    """
+    return {
+        "noaa": bundle["noaa"],
+        "pixels": bundle["pixels"],
+        "history": bundle["history"],
+        "source": bundle["source"],
+        "regional": bundle["regional"],
+    }

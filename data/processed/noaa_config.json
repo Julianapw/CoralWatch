@@ -1,0 +1,11 @@
+{
+  "source": "NOAA Coral Reef Watch v3.1",
+  "product": "Daily global 5-km satellite coral bleaching heat stress products",
+  "latest_date_by_region": {
+    "PRM2016252225710": "2026-11-09",
+    "PRM2016266222857": "2026-11-09",
+    "PRM2016287001832": "2026-11-09"
+  },
+  "latest_map_file": "noaa_latest_map.csv",
+  "note": "NOAA pixels represent ocean grid cells in the selected geographic footprints. They are not individual coral colonies."
+}
