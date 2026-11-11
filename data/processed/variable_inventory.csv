@@ -1,0 +1,67 @@
+source_file,group,variable,full_name,dimensions,shape,dtype,units,long_name,valid_min,valid_max
+PRM2016252225710.L2.nc,sensor_band_parameters,wavelength,/sensor_band_parameters/wavelength,number_of_bands,246,float32,nm,Band center wavelengths,350.0,1050.0
+PRM2016252225710.L2.nc,sensor_band_parameters,fwhm,/sensor_band_parameters/fwhm,number_of_bands,246,float32,nm,Band full-width half-maximums,0.0,100.0
+PRM2016252225710.L2.nc,sensor_band_parameters,benthic_wavelength,/sensor_band_parameters/benthic_wavelength,number_of_benthic_bands,92,float32,nm,Band center benthic reflectance wavelengths,350.0,1035.0
+PRM2016252225710.L2.nc,scan_line_attributes,scan_start_time,/scan_line_attributes/scan_start_time,number_of_scans,6009,float64,seconds,Scan start time (UTC),0.0,2000000000.0
+PRM2016252225710.L2.nc,scan_line_attributes,scan_end_time,/scan_line_attributes/scan_end_time,number_of_scans,6009,float64,seconds,Scan end time (UTC),0.0,2000000000.0
+PRM2016252225710.L2.nc,navigation_data,longitude,/navigation_data/longitude,"number_of_scans,pixels_per_scan",6009 x 692,float32,degrees_east,Longitudes of pixel locations,-180.0,180.0
+PRM2016252225710.L2.nc,navigation_data,latitude,/navigation_data/latitude,"number_of_scans,pixels_per_scan",6009 x 692,float32,degrees_north,Latitudes of pixel locations,-90.0,90.0
+PRM2016252225710.L2.nc,navigation_data,height,/navigation_data/height,"number_of_scans,pixels_per_scan",6009 x 692,float32,meters,Terrain height at pixel locations,-1000.0,10000.0
+PRM2016252225710.L2.nc,navigation_data,range,/navigation_data/range,"number_of_scans,pixels_per_scan",6009 x 692,int16,meters,Aircraft-to-pixel range,0,25000
+PRM2016252225710.L2.nc,navigation_data,sensor_zenith,/navigation_data/sensor_zenith,"number_of_scans,pixels_per_scan",6009 x 692,float32,degrees,Sensor zenith angle at pixel locations,0.0,90.0
+PRM2016252225710.L2.nc,navigation_data,sensor_azimuth,/navigation_data/sensor_azimuth,"number_of_scans,pixels_per_scan",6009 x 692,float32,degrees,Sensor azimuth angle at pixel locations,0.0,360.0
+PRM2016252225710.L2.nc,navigation_data,solar_zenith,/navigation_data/solar_zenith,"number_of_scans,pixels_per_scan",6009 x 692,float32,degrees,Solar zenith angle at pixel locations,0.0,90.0
+PRM2016252225710.L2.nc,navigation_data,solar_azimuth,/navigation_data/solar_azimuth,"number_of_scans,pixels_per_scan",6009 x 692,float32,degrees,Solar azimuth angle at pixel locations,0.0,360.0
+PRM2016252225710.L2.nc,derived_data,Rsw,/derived_data/Rsw,"number_of_bands,number_of_scans,pixels_per_scan",246 x 6009 x 692,float32,unitless,water surface reflectance,0.0,1000.0
+PRM2016252225710.L2.nc,derived_data,Rb,/derived_data/Rb,"number_of_benthic_bands,number_of_scans,pixels_per_scan",92 x 6009 x 692,float32,unitless,Benthic reflectance,0.0,1000.0
+PRM2016252225710.L2.nc,derived_data,depth,/derived_data/depth,"number_of_scans,pixels_per_scan",6009 x 692,float32,meters,water column depth,0.0,10000.0
+PRM2016252225710.L2.nc,derived_data,coral,/derived_data/coral,"number_of_scans,pixels_per_scan",6009 x 692,float32,unitless,Probability of coral benthic cover type,0.0,1.0
+PRM2016252225710.L2.nc,derived_data,sand,/derived_data/sand,"number_of_scans,pixels_per_scan",6009 x 692,float32,unitless,Probability of sand benthic cover type,0.0,1.0
+PRM2016252225710.L2.nc,derived_data,algae,/derived_data/algae,"number_of_scans,pixels_per_scan",6009 x 692,float32,unitless,Probability of algae benthic cover type,0.0,1.0
+PRM2016252225710.L2.nc,derived_data,GPP,/derived_data/GPP,"number_of_scans,pixels_per_scan",6009 x 692,float32,mmol C m^-2 d^-1,Benthic community gross daily primary productivity,0.0,10000.0
+PRM2016252225710.L2.nc,derived_data,G,/derived_data/G,"number_of_scans,pixels_per_scan",6009 x 692,float32,mmol CaCO3 m^-2 d^-1,Benthic community net daily calcification,6.0,1605.0
+PRM2016252225710.L2.nc,derived_data,Kd,/derived_data/Kd,"number_of_benthic_bands,number_of_scans,pixels_per_scan",92 x 6009 x 692,float32,m^-1,Diffuse attenuation,0.0,20.0
+PRM2016266222857.L2.nc,sensor_band_parameters,wavelength,/sensor_band_parameters/wavelength,number_of_bands,246,float32,nm,Band center wavelengths,350.0,1050.0
+PRM2016266222857.L2.nc,sensor_band_parameters,fwhm,/sensor_band_parameters/fwhm,number_of_bands,246,float32,nm,Band full-width half-maximums,0.0,100.0
+PRM2016266222857.L2.nc,sensor_band_parameters,benthic_wavelength,/sensor_band_parameters/benthic_wavelength,number_of_benthic_bands,92,float32,nm,Band center benthic reflectance wavelengths,350.0,1035.0
+PRM2016266222857.L2.nc,scan_line_attributes,scan_start_time,/scan_line_attributes/scan_start_time,number_of_scans,4285,float64,seconds,Scan start time (UTC),0.0,2000000000.0
+PRM2016266222857.L2.nc,scan_line_attributes,scan_end_time,/scan_line_attributes/scan_end_time,number_of_scans,4285,float64,seconds,Scan end time (UTC),0.0,2000000000.0
+PRM2016266222857.L2.nc,navigation_data,longitude,/navigation_data/longitude,"number_of_scans,pixels_per_scan",4285 x 682,float32,degrees_east,Longitudes of pixel locations,-180.0,180.0
+PRM2016266222857.L2.nc,navigation_data,latitude,/navigation_data/latitude,"number_of_scans,pixels_per_scan",4285 x 682,float32,degrees_north,Latitudes of pixel locations,-90.0,90.0
+PRM2016266222857.L2.nc,navigation_data,height,/navigation_data/height,"number_of_scans,pixels_per_scan",4285 x 682,float32,meters,Terrain height at pixel locations,-1000.0,10000.0
+PRM2016266222857.L2.nc,navigation_data,range,/navigation_data/range,"number_of_scans,pixels_per_scan",4285 x 682,int16,meters,Aircraft-to-pixel range,0,25000
+PRM2016266222857.L2.nc,navigation_data,sensor_zenith,/navigation_data/sensor_zenith,"number_of_scans,pixels_per_scan",4285 x 682,float32,degrees,Sensor zenith angle at pixel locations,0.0,90.0
+PRM2016266222857.L2.nc,navigation_data,sensor_azimuth,/navigation_data/sensor_azimuth,"number_of_scans,pixels_per_scan",4285 x 682,float32,degrees,Sensor azimuth angle at pixel locations,0.0,360.0
+PRM2016266222857.L2.nc,navigation_data,solar_zenith,/navigation_data/solar_zenith,"number_of_scans,pixels_per_scan",4285 x 682,float32,degrees,Solar zenith angle at pixel locations,0.0,90.0
+PRM2016266222857.L2.nc,navigation_data,solar_azimuth,/navigation_data/solar_azimuth,"number_of_scans,pixels_per_scan",4285 x 682,float32,degrees,Solar azimuth angle at pixel locations,0.0,360.0
+PRM2016266222857.L2.nc,derived_data,Rsw,/derived_data/Rsw,"number_of_bands,number_of_scans,pixels_per_scan",246 x 4285 x 682,float32,unitless,water surface reflectance,0.0,1000.0
+PRM2016266222857.L2.nc,derived_data,Rb,/derived_data/Rb,"number_of_benthic_bands,number_of_scans,pixels_per_scan",92 x 4285 x 682,float32,unitless,Benthic reflectance,0.0,1000.0
+PRM2016266222857.L2.nc,derived_data,depth,/derived_data/depth,"number_of_scans,pixels_per_scan",4285 x 682,float32,meters,water column depth,0.0,10000.0
+PRM2016266222857.L2.nc,derived_data,coral,/derived_data/coral,"number_of_scans,pixels_per_scan",4285 x 682,float32,unitless,Probability of coral benthic cover type,0.0,1.0
+PRM2016266222857.L2.nc,derived_data,sand,/derived_data/sand,"number_of_scans,pixels_per_scan",4285 x 682,float32,unitless,Probability of sand benthic cover type,0.0,1.0
+PRM2016266222857.L2.nc,derived_data,algae,/derived_data/algae,"number_of_scans,pixels_per_scan",4285 x 682,float32,unitless,Probability of algae benthic cover type,0.0,1.0
+PRM2016266222857.L2.nc,derived_data,GPP,/derived_data/GPP,"number_of_scans,pixels_per_scan",4285 x 682,float32,mmol C m^-2 d^-1,Benthic community gross daily primary productivity,0.0,10000.0
+PRM2016266222857.L2.nc,derived_data,G,/derived_data/G,"number_of_scans,pixels_per_scan",4285 x 682,float32,mmol CaCO3 m^-2 d^-1,Benthic community net daily calcification,6.0,1605.0
+PRM2016266222857.L2.nc,derived_data,Kd,/derived_data/Kd,"number_of_benthic_bands,number_of_scans,pixels_per_scan",92 x 4285 x 682,float32,m^-1,Diffuse attenuation,0.0,20.0
+PRM2016287001832.L2.nc,sensor_band_parameters,wavelength,/sensor_band_parameters/wavelength,number_of_bands,246,float32,nm,Band center wavelengths,350.0,1050.0
+PRM2016287001832.L2.nc,sensor_band_parameters,fwhm,/sensor_band_parameters/fwhm,number_of_bands,246,float32,nm,Band full-width half-maximums,0.0,100.0
+PRM2016287001832.L2.nc,sensor_band_parameters,benthic_wavelength,/sensor_band_parameters/benthic_wavelength,number_of_benthic_bands,92,float32,nm,Band center benthic reflectance wavelengths,350.0,1035.0
+PRM2016287001832.L2.nc,scan_line_attributes,scan_start_time,/scan_line_attributes/scan_start_time,number_of_scans,17123,float64,seconds,Scan start time (UTC),0.0,2000000000.0
+PRM2016287001832.L2.nc,scan_line_attributes,scan_end_time,/scan_line_attributes/scan_end_time,number_of_scans,17123,float64,seconds,Scan end time (UTC),0.0,2000000000.0
+PRM2016287001832.L2.nc,navigation_data,longitude,/navigation_data/longitude,"number_of_scans,pixels_per_scan",17123 x 686,float32,degrees_east,Longitudes of pixel locations,-180.0,180.0
+PRM2016287001832.L2.nc,navigation_data,latitude,/navigation_data/latitude,"number_of_scans,pixels_per_scan",17123 x 686,float32,degrees_north,Latitudes of pixel locations,-90.0,90.0
+PRM2016287001832.L2.nc,navigation_data,height,/navigation_data/height,"number_of_scans,pixels_per_scan",17123 x 686,float32,meters,Terrain height at pixel locations,-1000.0,10000.0
+PRM2016287001832.L2.nc,navigation_data,range,/navigation_data/range,"number_of_scans,pixels_per_scan",17123 x 686,int16,meters,Aircraft-to-pixel range,0,25000
+PRM2016287001832.L2.nc,navigation_data,sensor_zenith,/navigation_data/sensor_zenith,"number_of_scans,pixels_per_scan",17123 x 686,float32,degrees,Sensor zenith angle at pixel locations,0.0,90.0
+PRM2016287001832.L2.nc,navigation_data,sensor_azimuth,/navigation_data/sensor_azimuth,"number_of_scans,pixels_per_scan",17123 x 686,float32,degrees,Sensor azimuth angle at pixel locations,0.0,360.0
+PRM2016287001832.L2.nc,navigation_data,solar_zenith,/navigation_data/solar_zenith,"number_of_scans,pixels_per_scan",17123 x 686,float32,degrees,Solar zenith angle at pixel locations,0.0,90.0
+PRM2016287001832.L2.nc,navigation_data,solar_azimuth,/navigation_data/solar_azimuth,"number_of_scans,pixels_per_scan",17123 x 686,float32,degrees,Solar azimuth angle at pixel locations,0.0,360.0
+PRM2016287001832.L2.nc,derived_data,Rsw,/derived_data/Rsw,"number_of_bands,number_of_scans,pixels_per_scan",246 x 17123 x 686,float32,unitless,water surface reflectance,0.0,1000.0
+PRM2016287001832.L2.nc,derived_data,Rb,/derived_data/Rb,"number_of_benthic_bands,number_of_scans,pixels_per_scan",92 x 17123 x 686,float32,unitless,Benthic reflectance,0.0,1000.0
+PRM2016287001832.L2.nc,derived_data,depth,/derived_data/depth,"number_of_scans,pixels_per_scan",17123 x 686,float32,meters,water column depth,0.0,10000.0
+PRM2016287001832.L2.nc,derived_data,coral,/derived_data/coral,"number_of_scans,pixels_per_scan",17123 x 686,float32,unitless,Probability of coral benthic cover type,0.0,1.0
+PRM2016287001832.L2.nc,derived_data,sand,/derived_data/sand,"number_of_scans,pixels_per_scan",17123 x 686,float32,unitless,Probability of sand benthic cover type,0.0,1.0
+PRM2016287001832.L2.nc,derived_data,algae,/derived_data/algae,"number_of_scans,pixels_per_scan",17123 x 686,float32,unitless,Probability of algae benthic cover type,0.0,1.0
+PRM2016287001832.L2.nc,derived_data,GPP,/derived_data/GPP,"number_of_scans,pixels_per_scan",17123 x 686,float32,mmol C m^-2 d^-1,Benthic community gross daily primary productivity,0.0,10000.0
+PRM2016287001832.L2.nc,derived_data,G,/derived_data/G,"number_of_scans,pixels_per_scan",17123 x 686,float32,mmol CaCO3 m^-2 d^-1,Benthic community net daily calcification,6.0,1605.0
+PRM2016287001832.L2.nc,derived_data,Kd,/derived_data/Kd,"number_of_benthic_bands,number_of_scans,pixels_per_scan",92 x 17123 x 686,float32,m^-1,Diffuse attenuation,0.0,20.0

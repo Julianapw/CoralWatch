@@ -1,0 +1,30 @@
+{
+  "project": "CoralWatch",
+  "source": "NASA CORAL / PRISM Benthic Cover L2/RBEN",
+  "doi": "10.5067/PRISM/CORAL/L2/RBEN/V1",
+  "source_url": "https://oceandata.sci.gsfc.nasa.gov/coral_browser/",
+  "region_selected": "Great Barrier Reef",
+  "historical_data_note": "CORAL campaign observations are historical (2016-2017); do not present them as current or real-time reef health.",
+  "probability_note": "coral, algae and sand are per-pixel class probabilities from 0 to 1; they are not direct diagnoses of coral health or mortality.",
+  "statistics_note": "Counts, minimum, mean and maximum use all valid pixels. Median is estimated from a regular spatial sample.",
+  "quality_note": "A benthic pixel is valid when coral, algae and sand are all finite and within their declared valid ranges. Masked/invalid pixels are data-availability gaps, not evidence of ecological degradation.",
+  "spatial_validity_note": "spatial_validity_sample.csv is a regular geospatial sample of coordinates with valid navigation values. It includes both valid and masked/invalid benthic classifications to visualize data coverage.",
+  "files_processed": [
+    "PRM2016252225710.L2.nc",
+    "PRM2016266222857.L2.nc",
+    "PRM2016287001832.L2.nc"
+  ],
+  "spatial_sample_limit_per_variable_per_flight": 100000,
+  "chunk_scans": 256,
+  "outputs": [
+    "flight_catalog.csv",
+    "flight_inventory.csv",
+    "variable_inventory.csv",
+    "benthic_variable_summary.csv",
+    "spatial_observations.csv",
+    "spatial_validity_sample.csv",
+    "nasa_pixel_quality.csv",
+    "class_legend.csv",
+    "dashboard_config.json"
+  ]
+}

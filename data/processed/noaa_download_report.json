@@ -1,0 +1,33 @@
+{
+  "generated_at_utc": "2026-11-10T03:54:20.822215+00:00",
+  "product": "NOAA Coral Reef Watch v3.1 daily global 5km",
+  "days_requested": 30,
+  "variables": [
+    "CRW_SST",
+    "CRW_SSTANOMALY",
+    "CRW_HOTSPOT",
+    "CRW_DHW",
+    "CRW_BAA_7D_MAX"
+  ],
+  "note": "NOAA recent conditions are separate from the historical 2016 NASA benthic observations; they do not explain or establish the cause of those observations.",
+  "results": [
+    {
+      "flight_id": "PRM2016252225710",
+      "file": "data/raw/noaa/PRM2016252225710_NOAA_last_30_days.nc",
+      "size_mb": 0.11,
+      "status": "downloaded_or_cached"
+    },
+    {
+      "flight_id": "PRM2016266222857",
+      "file": "data/raw/noaa/PRM2016266222857_NOAA_last_30_days.nc",
+      "size_mb": 0.06,
+      "status": "downloaded_or_cached"
+    },
+    {
+      "flight_id": "PRM2016287001832",
+      "file": "data/raw/noaa/PRM2016287001832_NOAA_last_30_days.nc",
+      "size_mb": 0.39,
+      "status": "downloaded_or_cached"
+    }
+  ]
+}
