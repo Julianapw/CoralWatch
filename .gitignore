@@ -1,21 +1,13 @@
-# Python
+# Ambiente Python
+.venv/
 __pycache__/
 *.py[cod]
-.venv/
-venv/
-.env
 
-# Raw scientific data can be large; do not commit it to GitHub.
-data/raw/*
-!data/raw/**/.gitkeep
+# Dados brutos da NASA e NOAA
+data/raw/
 
-# Generated outputs; share the ZIP from downloads/ when needed.
-data/processed/*
-!data/processed/.gitkeep
-downloads/*
-!downloads/.gitkeep
-logs/*
-!logs/.gitkeep
+# Downloads originais
+downloads/*.nc
 
-# Earthdata URL lists may contain private download links.
-download_urls.txt
+# Logs
+logs/

@@ -1,0 +1,4 @@
+variable,display_name,meaning,units,interpretation
+coral,Coral,Probability of coral benthic cover type,unitless,"Per-pixel model probability, from 0 to 1; not a direct diagnosis of coral health."
+algae,Algae,Probability of algae benthic cover type,unitless,"Per-pixel model probability, from 0 to 1."
+sand,Sand,Probability of sand benthic cover type,unitless,"Per-pixel model probability, from 0 to 1."
