@@ -232,8 +232,12 @@ as cores e as dimensões ficam em `core/theme.py`; os componentes reutilizáveis
 `core/components.py` e os filtros compartilhados em `core/filters.py`. A fachada
 `core/data.py` reutiliza o carregador científico existente de `dashboard/data.py`.
 
-Cards da mesma linha têm altura padronizada; os painéis usam 700 px e os gráficos
-Plotly, 360 px. O Overview combina mapa e indicadores em proporção 2:1; composição
-e séries térmicas usam duas colunas. Em telas estreitas, as colunas se reorganizam.
-Conteúdo adicional permanece acessível por rolagem dentro do painel. Tabelas,
-downloads, avisos científicos, datas e metodologia continuam disponíveis.
+As quatro páginas usam títulos e eixos em português, indicadores compactos e painéis
+com altura natural, sem rolagem interna para acomodar textos. A visão geral prioriza
+o mapa; as séries SST e DHW têm destaque no monitoramento térmico. Zoom e exportação
+de imagem do Plotly permanecem disponíveis. Tabelas completas e downloads ficam em
+“Ver dados e exportar”; os detalhes científicos em “Metodologia e fontes”.
+
+Nomes como “Área 01 · voo de 08/09/2016” são derivados do catálogo NASA completo,
+antes dos filtros, apenas para apresentação. Os identificadores originais permanecem
+nos tooltips, tabelas e downloads. Nenhuma nova relação entre NASA e NOAA é criada.

@@ -1,5 +1,6 @@
 """Shared sidebar filters; existing source-specific selection rules are preserved."""
 import streamlit as st
+from core.components import display_name
 
 
 def date_filter(d, column, title, key):
@@ -19,7 +20,13 @@ def choice_filter(d, column, title, key):
         st.sidebar.caption(f'{title}: campo indisponível.')
         return d
     options = sorted(d[column].dropna().unique().tolist(), key=str)
-    selected = st.sidebar.multiselect(title, options, default=options, key=key)
+    def presentation(value):
+        if column == 'flight_line':
+            return display_name(value)
+        if column == 'variable':
+            return {'coral': 'Coral', 'algae': 'Algas', 'sand': 'Areia'}.get(value, str(value))
+        return str(value)
+    selected = st.sidebar.multiselect(title, options, default=options, key=key, format_func=presentation)
     return d[d[column].isin(selected)]
 
 

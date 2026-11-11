@@ -3,8 +3,9 @@ import pandas as pd
 import plotly.express as px
 import pydeck as pdk
 import streamlit as st
+from html import escape
 from dashboard.data import coordinates, numeric
-from core.theme import BENTHIC, ALERT_COLORS, CHART_HEIGHT, MAP_HEIGHT, plotly_template
+from core.theme import BENTHIC, ALERT_COLORS, SERIES_COLORS, CHART_HEIGHT, MAP_HEIGHT, plotly_template
 from core.components import empty_chart
 
 ALERTS = {0: 'No Stress', 1: 'Bleaching Watch', 2: 'Bleaching Warning', 3: 'Alert Level 1', 4: 'Alert Level 2'}
@@ -17,7 +18,13 @@ def label(value):
 
 def plot(fig):
     fig.update_layout(template=plotly_template(), height=CHART_HEIGHT, legend_title_text='')
-    st.plotly_chart(fig, width='stretch', config={'displayModeBar': False})
+    for index, trace in enumerate(fig.data):
+        if trace.type == 'scatter':
+            trace.line.color = SERIES_COLORS[index % len(SERIES_COLORS)]
+            trace.marker.color = SERIES_COLORS[index % len(SERIES_COLORS)]
+        if trace.name in ('coral', 'algae', 'sand'):
+            trace.name = {'coral': 'Coral', 'algae': 'Algas', 'sand': 'Areia'}[trace.name]
+    st.plotly_chart(fig, width='stretch', config={'displayModeBar': True, 'displaylogo': False, 'responsive': True})
 
 
 def bounds_points(frame):
@@ -63,8 +70,12 @@ def map_chart(frame, value=None, categorical=False):
         st.caption(f'Escala {value}: turquesa {low:.2f} → laranja {high:.2f}.')
     else:
         d['color'] = [[0, 143, 149]] * len(d)
-    tooltip_cols = [c for c in ('flight_line', 'region', 'date', 'observation_date', 'alert_label', value, 'coral', 'algae', 'sand', 'unit_label', 'geometry_note') if c and c in d]
-    tooltip = '<br/>'.join(f'{c}: {{{c}}}' for c in dict.fromkeys(tooltip_cols))
+    tooltip_cols = [c for c in ('_area', 'flight_line', 'source_file', 'region', 'date', 'observation_date', 'alert_label', value, 'units', 'coral', 'algae', 'sand', 'unit_label', 'geometry_note') if c and c in d]
+    names = {'_area': 'Área', 'flight_line': 'Código do voo', 'source_file': 'Arquivo original',
+             'region': 'Região / recorte', 'date': 'Data observada', 'observation_date': 'Data da pesquisa',
+             'alert_label': 'Nível BAA (máximo de 7 dias)', 'value': 'Valor original', 'units': 'Unidade',
+             'geometry_note': 'Geometria', 'unit_label': 'Unidade'}
+    tooltip = '<br/>'.join(f'{names.get(c, c)}: {{{c}}}' for c in dict.fromkeys(tooltip_cols))
     for col in d.select_dtypes(include=['datetime', 'datetimetz']).columns:
         d[col] = d[col].dt.strftime('%Y-%m-%d')
     layers = [pdk.Layer('ScatterplotLayer', d.to_dict('records'), get_position='[longitude, latitude]',
@@ -73,5 +84,5 @@ def map_chart(frame, value=None, categorical=False):
         latitude=float(d.latitude.mean()), longitude=float(d.longitude.mean()), zoom=4),
         map_style=pdk.map_styles.LIGHT, tooltip={'html': tooltip or 'Observação georreferenciada'}), height=MAP_HEIGHT)
     if categorical:
-        legend = ' &nbsp; '.join(f'<span style="color:{COLORS[k]}">●</span> {v}' for k, v in ALERTS.items())
-        st.markdown(legend + ' &nbsp; <span style="color:#697687">●</span> Outros códigos', unsafe_allow_html=True)
+        legend = ''.join(f'<span><span class="cw-risk cw-risk-{k}">{escape(v)}</span></span>' for k, v in ALERTS.items())
+        st.markdown('<div class="cw-legend">' + legend + '<span>Outros códigos: cinza · Sem dados: sem classificação</span></div>', unsafe_allow_html=True)
