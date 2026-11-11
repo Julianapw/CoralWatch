@@ -1,13 +1,14 @@
-﻿"""Consistent Plotly and PyDeck presentation."""
+"""Consistent Plotly and PyDeck presentation."""
 import pandas as pd
 import plotly.express as px
 import pydeck as pdk
 import streamlit as st
 from dashboard.data import coordinates, numeric
+from core.theme import BENTHIC, ALERT_COLORS, CHART_HEIGHT, MAP_HEIGHT, plotly_template
+from core.components import empty_chart
 
-BENTHIC = {'coral': '#008F95', 'algae': '#547C38', 'sand': '#D8B979'}
 ALERTS = {0: 'No Stress', 1: 'Bleaching Watch', 2: 'Bleaching Warning', 3: 'Alert Level 1', 4: 'Alert Level 2'}
-COLORS = {0: '#47A89B', 1: '#E7C84B', 2: '#EE923B', 3: '#D74B43', 4: '#872F65'}
+COLORS = ALERT_COLORS
 
 
 def label(value):
@@ -15,8 +16,8 @@ def label(value):
 
 
 def plot(fig):
-    fig.update_layout(template='plotly_white', font_color='#102D46', margin=dict(l=20, r=20, t=40, b=20), legend_title_text='')
-    st.plotly_chart(fig, width='stretch')
+    fig.update_layout(template=plotly_template(), height=CHART_HEIGHT, legend_title_text='')
+    st.plotly_chart(fig, width='stretch', config={'displayModeBar': False})
 
 
 def bounds_points(frame):
@@ -38,13 +39,13 @@ def bounds_points(frame):
 def map_chart(frame, value=None, categorical=False):
     d = coordinates(frame)
     if d.empty:
-        st.info('Mapa indisponível: são necessárias coordenadas válidas ou limites geográficos no arquivo da fonte.')
+        empty_chart('Mapa indisponível: são necessárias coordenadas válidas ou limites geográficos no arquivo da fonte.')
         return
     if value and value in d:
         d[value] = numeric(d[value])
         d = d.dropna(subset=[value])
     if d.empty:
-        st.info('Não há medidas válidas para este mapa.')
+        empty_chart('Não há medidas válidas para este mapa.')
         return
     if len(d) > 50000:
         d = d.iloc[::max(2, (len(d) + 49999) // 50000)].copy()
@@ -62,7 +63,7 @@ def map_chart(frame, value=None, categorical=False):
         st.caption(f'Escala {value}: turquesa {low:.2f} → laranja {high:.2f}.')
     else:
         d['color'] = [[0, 143, 149]] * len(d)
-    tooltip_cols = [c for c in ('flight_line', 'region', 'date', 'observation_date', 'alert_label', value, 'geometry_note') if c and c in d]
+    tooltip_cols = [c for c in ('flight_line', 'region', 'date', 'observation_date', 'alert_label', value, 'coral', 'algae', 'sand', 'unit_label', 'geometry_note') if c and c in d]
     tooltip = '<br/>'.join(f'{c}: {{{c}}}' for c in dict.fromkeys(tooltip_cols))
     for col in d.select_dtypes(include=['datetime', 'datetimetz']).columns:
         d[col] = d[col].dt.strftime('%Y-%m-%d')
@@ -70,7 +71,7 @@ def map_chart(frame, value=None, categorical=False):
                         get_fill_color='color', get_radius=350, radius_min_pixels=4, pickable=True)]
     st.pydeck_chart(pdk.Deck(layers=layers, initial_view_state=pdk.ViewState(
         latitude=float(d.latitude.mean()), longitude=float(d.longitude.mean()), zoom=4),
-        map_style=pdk.map_styles.LIGHT, tooltip={'html': tooltip or 'Observação georreferenciada'}))
+        map_style=pdk.map_styles.LIGHT, tooltip={'html': tooltip or 'Observação georreferenciada'}), height=MAP_HEIGHT)
     if categorical:
         legend = ' &nbsp; '.join(f'<span style="color:{COLORS[k]}">●</span> {v}' for k, v in ALERTS.items())
         st.markdown(legend + ' &nbsp; <span style="color:#697687">●</span> Outros códigos', unsafe_allow_html=True)

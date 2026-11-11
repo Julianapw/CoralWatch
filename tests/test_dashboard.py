@@ -1,4 +1,4 @@
-﻿import json
+import json
 from pathlib import Path
 import tempfile
 import unittest
@@ -8,7 +8,17 @@ from streamlit.testing.v1 import AppTest
 from dashboard import data
 from dashboard.ui import PAGES
 
+PAGE_FILES = ['pages/1_Overview.py', 'pages/2_Reef_Composition.py', 'pages/3_Environmental_Monitoring.py', 'pages/4_Early_Warning.py']
+
 ROOT = Path(__file__).resolve().parents[1]
+PAGE_PATHS = [str(ROOT / path) for path in PAGE_FILES]
+
+
+def app_test():
+    # Keep the test entrypoint outside pages/: AppTest resets Streamlit's legacy
+    # pages-directory detection on every rerun. Run the real entrypoint unchanged.
+    script = f"import runpy; runpy.run_path({str(ROOT / 'app.py')!r}, run_name='__main__')"
+    return AppTest.from_string(script, default_timeout=30).run()
 
 
 class DashboardTests(unittest.TestCase):
@@ -108,9 +118,9 @@ class DashboardTests(unittest.TestCase):
 
     def assert_pages(self):
         with patch.object(data, 'DATA_DIR', self.folder):
-            at = AppTest.from_file(str(ROOT / 'app.py'), default_timeout=30).run()
-            for page in PAGES:
-                at.sidebar.radio(key='page').set_value(page).run()
+            at = app_test()
+            for page in PAGE_PATHS:
+                at.switch_page(page).run()
                 self.assertEqual(len(at.exception), 0, [x.message for x in at.exception])
             return at
 
@@ -129,13 +139,13 @@ class DashboardTests(unittest.TestCase):
         self.nasa()
         self.regional()
         with patch.object(data, 'DATA_DIR', self.folder):
-            at = AppTest.from_file(str(ROOT / 'app.py'), default_timeout=30).run()
+            at = app_test()
             before = at.metric[3].value
             at.sidebar.multiselect(key='nasa_flight_line').set_value([]).run()
             self.assertEqual(at.metric[3].value, before, 'Filtros NASA não podem alterar BAA NOAA')
             at.sidebar.multiselect(key='noaa_region').set_value([]).run()
-            for page in PAGES:
-                at.sidebar.radio(key='page').set_value(page).run()
+            for page in PAGE_PATHS:
+                at.switch_page(page).run()
                 self.assertEqual(len(at.exception), 0, [x.message for x in at.exception])
         self.assert_pages()
 

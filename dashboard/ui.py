@@ -1,11 +1,18 @@
-﻿"""Four pages, independent scientific time windows and explicit provenance."""
+"""Four pages, independent scientific time windows and explicit provenance."""
 from datetime import datetime
 from zoneinfo import ZoneInfo
+from pathlib import Path
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-from dashboard.data import load, latest_by_region, composition_valid, coordinates, numeric, dates
-from dashboard.charts import plot, map_chart, bounds_points, BENTHIC, ALERTS, COLORS, label
+from dashboard.data import latest_by_region, composition_valid, coordinates, numeric
+from dashboard.charts import plot, map_chart, bounds_points, BENTHIC, ALERTS, label
+from core.theme import PANEL_HEIGHT
+from core.components import (kpi_card, alert_card, section_header, disclaimer,
+                             hero, insight, empty_chart, summary_item, data_source_badge, risk_pill)
+from core.data import load_bundle, load_nasa, load_noaa
+from core.filters import render_filters
+from core.theme import apply_theme
 
 PAGES = ['Overview', 'Reef Composition (NASA CORAL)', 'Environmental Monitoring (NOAA)', 'Early Warning System']
 NOTICE = ('NASA CORAL: observações históricas, principalmente de 2016–2017. NOAA: indicadores de estresse térmico e risco de branqueamento na data informada. Esses dados não diagnosticam mortalidade individual de corais.')
@@ -14,85 +21,6 @@ NOTICE = ('NASA CORAL: observações históricas, principalmente de 2016–2017.
 def table(d, name):
     st.dataframe(d, hide_index=True, width='stretch')
     st.download_button('Baixar dados filtrados (CSV)', d.to_csv(index=False).encode('utf-8-sig'), name + '.csv', 'text/csv', key='download_' + name)
-
-
-def date_filter(d, column, title, key):
-    if column not in d or d[column].dropna().empty:
-        st.sidebar.caption(f'{title}: datas válidas indisponíveis.')
-        return d
-    lo, hi = d[column].min().date(), d[column].max().date()
-    interval = st.sidebar.date_input(title, (lo, hi), min_value=lo, max_value=hi, key=key)
-    if len(interval) != 2:
-        st.sidebar.caption('Selecione o início e o fim do intervalo.')
-        return d.iloc[0:0]
-    return d[d[column].dt.date.between(*interval)]
-
-
-def choice_filter(d, column, title, key):
-    if column not in d or d[column].dropna().empty:
-        st.sidebar.caption(f'{title}: campo indisponível.')
-        return d
-    options = sorted(d[column].dropna().unique().tolist(), key=str)
-    selected = st.sidebar.multiselect(title, options, default=options, key=key)
-    return d[d[column].isin(selected)]
-
-
-def nasa_filters(bundle):
-    st.sidebar.markdown('**NASA · campanha histórica**')
-    cat = bundle['catalog'].copy()
-    b = bundle['benthic'].copy()
-    # Filter against the catalog when available, otherwise the summary metadata.
-    base = cat if not cat.empty else b
-    for col, title in [('region', 'Região NASA'), ('flight_line', 'Identificação do voo'), ('geographic_region', 'Região geográfica')]:
-        base = choice_filter(base, col, title, 'nasa_' + col)
-    base = date_filter(base, 'observation_date', 'Data da pesquisa NASA', 'nasa_dates')
-    if 'flight_line' in base:
-        flights = base.flight_line.unique()
-        if 'flight_line' in b:
-            b = b[b.flight_line.isin(flights)]
-        if 'flight_line' in cat:
-            cat = cat[cat.flight_line.isin(flights)]
-    elif base.empty:
-        b, cat = b.iloc[0:0], cat.iloc[0:0]
-    full = b.copy()
-    b = choice_filter(b, 'variable', 'Classe bentônica', 'classes')
-    spatial = bundle['spatial'].copy()
-    if not spatial.empty:
-        if 'flight_line' in spatial and 'flight_line' in base:
-            spatial = spatial[spatial.flight_line.isin(base.flight_line)]
-        elif 'source_file' in spatial and 'source_file' in base:
-            spatial = spatial[spatial.source_file.isin(base.source_file)]
-        else:
-            spatial = spatial.iloc[0:0]
-        if 'variable' in spatial and 'variable' in b:
-            spatial = spatial[spatial.variable.isin(b.variable)]
-    return cat, b, full, spatial
-
-
-def noaa_filters(bundle):
-    st.sidebar.markdown('**NOAA · janela independente**')
-    d = bundle['noaa'].copy()
-    if bundle['regional']:
-        d = choice_filter(d, 'region', 'Região NOAA', 'noaa_region')
-    else:
-        st.sidebar.caption('Série original: recorte global; sem filtro regional. Filtros NASA não alteram NOAA.')
-    pixels = bundle['pixels'].copy()
-    if d.empty and bundle['noaa'].empty and not pixels.empty:
-        pixels = date_filter(pixels, 'date', 'Datas NOAA (pixels)', 'noaa_pixel_dates')
-    else:
-        d = date_filter(d, 'date', 'Datas NOAA', 'noaa_dates')
-    if not pixels.empty:
-        if bundle['regional']:
-            # A global pixel map must not pretend to answer a regional filter.
-            if 'region' in pixels:
-                pixels = pixels[pixels.region.isin(d.region.unique())] if 'region' in d else pixels.iloc[0:0]
-            else:
-                pixels = pixels.iloc[0:0]
-        if 'date' in d and not d.empty:
-            pixels = pixels[pixels.date.between(d.date.min(), d.date.max())]
-        elif not bundle['noaa'].empty:
-            pixels = pixels.iloc[0:0]
-    return d, pixels
 
 
 def freshness(d):
@@ -142,11 +70,15 @@ def overview(bundle, cat, b, full, spatial, noaa, pixels):
     compatible = not coral.empty and coral.unit_label.nunique() == 1
     value = coral.measure.mean() if compatible else float('nan')
     baa = noaa[noaa.date == noaa.date.max()].baa.max() if not noaa.empty and 'baa' in noaa else (pixels.baa.max() if not pixels.empty and 'baa' in pixels else float('nan'))
-    cols = st.columns(4)
-    cols[0].metric('Regiões NASA identificadas', regions if regions else '—')
-    cols[1].metric('Voos distintos', flights)
-    cols[2].metric('Coral · média entre voos', f'{value:.1f}' if pd.notna(value) else '—')
-    cols[3].metric('BAA · última data NOAA', label(baa))
+    cols = st.columns(4, gap='medium')
+    with cols[0]:
+        kpi_card('Regiões NASA identificadas', regions if regions else '—', 'Rótulos regionais do catálogo; voos são contados separadamente.', 'regions')
+    with cols[1]:
+        kpi_card('Voos distintos', flights, 'Campanha histórica · filtros NASA selecionados.', 'flights')
+    with cols[2]:
+        kpi_card('Coral · média entre voos', f'{value:.1f}' if pd.notna(value) else '—', str(coral.unit_label.iloc[0]) if compatible else 'Unidade comparável indisponível.', 'coral')
+    with cols[3]:
+        kpi_card('BAA · última data NOAA', label(baa), 'Maior nível observado; máximo de sete dias da fonte.', 'alert-max', 'NOAA')
     st.caption('Regiões são rótulos regionais do catálogo, não voos. Coral: média aritmética não ponderada das médias por voo; não representa cobertura de toda a área. ' + (str(coral.unit_label.iloc[0]) if compatible else 'Unidade comparável não disponível.'))
     if 'observation_date' in cat and cat.observation_date.notna().any():
         st.write(f'Período histórico NASA: {cat.observation_date.min():%Y-%m-%d} a {cat.observation_date.max():%Y-%m-%d}.')
@@ -154,104 +86,195 @@ def overview(bundle, cat, b, full, spatial, noaa, pixels):
         st.info('Período NASA indisponível: verifique flight_catalog.csv e observation_date.')
     freshness(noaa if not noaa.empty else pixels)
     layer = st.radio('Camada do mapa', ['NASA histórica', 'NOAA recente'], horizontal=True)
-    if layer == 'NASA histórica':
-        if not coordinates(spatial).empty:
-            map_chart(spatial)
-            st.caption('Observações NASA individuais; possível amostragem regular do produtor.')
+    left, right = st.columns([2, 1], gap='medium')
+    with left, st.container(height=PANEL_HEIGHT, border=True, key='cw-panel-overview-map'):
+        section_header('Área de observação', 'Explore o recorte espacial da fonte selecionada.', 'NASA' if layer == 'NASA histórica' else 'NOAA')
+        if layer == 'NASA histórica':
+            points = spatial[spatial.variable == 'coral'].copy() if 'variable' in spatial else spatial
+            if not coordinates(points).empty:
+                map_chart(points, 'value' if 'value' in points else None)
+                st.caption('Observações NASA individuais; possível amostragem regular do produtor. Cor pelo valor original da probabilidade de coral, sem renormalização.')
+            elif not coordinates(spatial).empty:
+                map_chart(spatial)
+                st.caption('Observações NASA individuais; possível amostragem regular do produtor.')
+            else:
+                map_chart(bounds_points(cat))
+                st.caption('Centro dos limites geográficos de cada voo — aproximação, não pixel observado.')
         else:
-            map_chart(bounds_points(cat))
-            st.caption('Centro dos limites geográficos de cada voo — aproximação, não pixel observado.')
-    else:
-        map_chart(pixels, 'baa', True)
-        if not pixels.empty:
-            st.caption(f'Pixels NOAA observados em {pixels.date.max():%Y-%m-%d}; fonte noaa_latest_map.csv.')
-    st.subheader('Resumo bentônico')
+            map_chart(pixels, 'baa', True)
+            if not pixels.empty:
+                st.caption(f'Pixels NOAA observados em {pixels.date.max():%Y-%m-%d}; fonte noaa_latest_map.csv.')
+    with right, st.container(height=PANEL_HEIGHT, border=True, key='cw-panel-overview-summary'):
+        section_header('Principais indicadores', 'Leitura histórica e térmica em contextos separados.', 'NASA')
+        valid_coral = coral.dropna(subset=['measure']) if not coral.empty else coral
+        if compatible and not valid_coral.empty:
+            for title, row in [('Maior média de coral entre voos', valid_coral.loc[valid_coral.measure.idxmax()]), ('Menor média de coral entre voos', valid_coral.loc[valid_coral.measure.idxmin()])]:
+                summary_item(title, f'{row.flight_line} · {row.measure:.1f} {row.unit_label}')
+        else:
+            summary_item('Coral', 'Sem medidas comparáveis no filtro')
+        st.markdown(data_source_badge('NOAA'), unsafe_allow_html=True)
+        if 'baa' in latest and latest.baa.notna().any():
+            row = latest.loc[latest.baa.idxmax()]
+            summary_item('Recorte com maior BAA regional', f'{row.region} · {label(row.baa)} · {row.date:%Y-%m-%d}')
+            summary_item('Datas regionais', 'Cada região conserva sua última observação no filtro.')
+        else:
+            summary_item('Estresse térmico regional', 'Sem classificação regional disponível')
+        insight('BAA é fornecido pela NOAA. HotSpot e DHW do dia são contexto e não reconstituem o máximo de sete dias.')
+    section_header('Resumo bentônico', 'Estatísticas e metadados completos dos registros selecionados.', 'NASA')
     if b.empty:
         st.info('Necessário benthic_variable_summary.csv com variable, mean e flight_line; metadados de unidade em class_legend.csv / variable_inventory.csv / dashboard_config.json.')
     else:
         table(b, 'overview_nasa')
-    st.subheader('Resumo térmico · última observação por região')
+    section_header('Resumo térmico · última observação por região', 'Médias e máximos mantêm os rótulos e as unidades originais.', 'NOAA')
     if not latest.empty:
         table(recent_table(latest), 'overview_noaa')
 
 
 def composition(bundle, cat, b, full, spatial):
+    st.caption('As classes coral, algae e sand do produtor são probabilidades. Exibimos % de probabilidade média somente com evidência explícita de escala 0–1 nos metadados. Nenhum gráfico renormaliza os valores.')
     if b.empty:
         st.info('Nenhuma medida bentônica neste filtro. Forneça benthic_variable_summary.csv e flight_catalog.csv ou ajuste os filtros.')
-        return
-    st.caption('As classes coral, algae e sand do produtor são probabilidades. Exibimos % de probabilidade média somente com evidência explícita de escala 0–1 nos metadados. Nenhum gráfico renormaliza os valores.')
     valid = composition_valid(full, cat)
-    st.subheader('Classes bentônicas por voo')
-    for unit, group in b.groupby('unit_label'):
-        fig = px.bar(group, x='flight_line', y='measure', color='variable', color_discrete_map=BENTHIC,
-                     barmode='stack' if valid else 'group', labels={'measure': unit, 'flight_line': 'Voo'})
-        plot(fig)
-    if valid:
-        st.caption('Empilhamento validado: classes documentadas, contagens iguais ao conjunto comum válido e soma de probabilidades entre 0,95 e 1,05 em todos os pixels válidos. Valores originais, sem ajuste a 100%. Subconjuntos de classes podem não somar 100%.')
-    else:
-        st.info('Composição de 100% não validada: medidas exibidas lado a lado. São necessários metadados de unidade e métricas de denominador comum / soma no catálogo. Não reconstruímos pixels a partir de médias.')
-    coral = b[b.variable == 'coral'].dropna(subset=['measure'])
-    if not coral.empty:
-        direction = st.radio('Ranking de coral', ['Maiores', 'Menores'], horizontal=True)
-        ranked = coral.sort_values('measure', ascending=direction == 'Menores').head(20)
-        plot(px.bar(ranked, x='measure', y='flight_line', orientation='h', color_discrete_sequence=[BENTHIC['coral']], labels={'measure': str(coral.unit_label.iloc[0]), 'flight_line': 'Voo'}))
-    if not b.duplicated(['flight_line', 'variable']).any():
-        pivot = b.pivot(index='flight_line', columns='variable', values='measure').reset_index()
-        if {'coral', 'algae'} <= set(pivot) and b.unit_label.nunique() == 1:
-            meta = b.drop_duplicates('flight_line')
-            extra = [c for c in ('region', 'observation_date') if c in meta]
-            pivot = pivot.merge(meta[['flight_line'] + extra], on='flight_line', validate='one_to_one')
-            plot(px.scatter(pivot, x='coral', y='algae', hover_data=['flight_line'] + extra,
-                            labels={'coral': 'Coral · ' + b.unit_label.iloc[0], 'algae': 'Algae · ' + b.unit_label.iloc[0]}, color_discrete_sequence=['#008F95']))
-    individual = spatial[spatial.variable == 'coral'].copy() if 'variable' in spatial else pd.DataFrame()
-    if 'value' in individual:
-        individual['value'] = numeric(individual.value)
-        individual = individual.dropna(subset=['value'])
-    if not individual.empty and 'region' in individual and 'value' in individual:
-        unit = str(individual['units'].iloc[0]) if 'units' in individual else 'unidade não confirmada'
-        plot(px.box(individual, x='region', y='value', labels={'value': 'Coral · ' + unit, 'region': 'Região'}, color_discrete_sequence=[BENTHIC['coral']]))
-        st.caption('Distribuição das observações individuais válidas exportadas em spatial_observations.csv; possível subamostra regular, na unidade original.')
-    elif not coral.empty:
-        group = 'region' if 'region' in coral else 'flight_line'
-        plot(px.box(coral, x=group, y='measure', labels={'measure': coral.unit_label.iloc[0]}, color_discrete_sequence=[BENTHIC['coral']]))
-        st.caption('Distribuição de médias entre voos; não representa a distribuição de pixels.')
+    coral = b[b.variable == 'coral'].dropna(subset=['measure']) if 'variable' in b else pd.DataFrame()
+    left, right = st.columns(2, gap='medium')
+    with left, st.container(height=PANEL_HEIGHT, border=True, key='cw-panel-composition-classes'):
+        section_header('Classes bentônicas', 'Valores originais por voo; denominador preservado.', 'NASA')
+        with st.container(height=70, border=False):
+            st.caption('Coral · Algae · Sand | empilhamento somente quando validado')
+        if b.empty:
+            empty_chart('Selecione voos e classes com medidas disponíveis.')
+        else:
+            for unit, group in b.groupby('unit_label'):
+                fig = px.bar(group, x='flight_line', y='measure', color='variable', color_discrete_map=BENTHIC,
+                             barmode='stack' if valid else 'group', labels={'measure': unit, 'flight_line': 'Voo'})
+                plot(fig)
+        if valid:
+            insight('Empilhamento validado: classes documentadas, contagens iguais ao conjunto comum válido e soma de probabilidades entre 0,95 e 1,05 em todos os pixels válidos. Valores originais, sem ajuste a 100%. Subconjuntos de classes podem não somar 100%.')
+        else:
+            insight('Composição de 100% não validada: medidas exibidas lado a lado. São necessários metadados de unidade e métricas de denominador comum / soma no catálogo. Não reconstruímos pixels a partir de médias.')
+    with right, st.container(height=PANEL_HEIGHT, border=True, key='cw-panel-composition-ranking'):
+        section_header('Ranking de coral', 'Compare as médias por voo sem interpretar tendência temporal.', 'NASA')
+        with st.container(height=70, border=False):
+            direction = st.radio('Ranking de coral', ['Maiores', 'Menores'], horizontal=True)
+        if not coral.empty:
+            ranked = coral.sort_values('measure', ascending=direction == 'Menores').head(20)
+            fig = px.bar(ranked, x='measure', y='flight_line', orientation='h', text_auto='.1f', color_discrete_sequence=[BENTHIC['coral']], labels={'measure': str(coral.unit_label.iloc[0]), 'flight_line': 'Voo'})
+            fig.update_yaxes(categoryorder='array', categoryarray=ranked.flight_line.tolist()[::-1])
+            plot(fig)
+        else:
+            empty_chart('Não há médias de coral válidas na seleção.')
+        insight('Até 20 voos, ordenados pelo valor médio de coral na unidade declarada. Baixos valores não comprovam mortalidade.')
+    left, right = st.columns(2, gap='medium')
+    with left, st.container(height=PANEL_HEIGHT, border=True, key='cw-panel-composition-scatter'):
+        section_header('Coral × Algae', 'Relação entre médias por voo; sem interpretação causal.', 'NASA')
+        with st.container(height=70, border=False):
+            st.caption('Tooltip: voo, região e data de pesquisa')
+        scatter = None
+        if not b.empty and not b.duplicated(['flight_line', 'variable']).any():
+            pivot = b.pivot(index='flight_line', columns='variable', values='measure').reset_index()
+            if {'coral', 'algae'} <= set(pivot) and b.unit_label.nunique() == 1:
+                meta = b.drop_duplicates('flight_line')
+                extra = [c for c in ('region', 'observation_date') if c in meta]
+                pivot = pivot.merge(meta[['flight_line'] + extra], on='flight_line', validate='one_to_one')
+                scatter = px.scatter(pivot, x='coral', y='algae', hover_data=['flight_line'] + extra,
+                                     color='region' if 'region' in pivot else None,
+                                     labels={'coral': 'Coral · ' + b.unit_label.iloc[0], 'algae': 'Algae · ' + b.unit_label.iloc[0]})
+                scatter.update_traces(marker_size=12, marker_line_width=1, marker_line_color='#FFFFFF')
+        if scatter is not None:
+            plot(scatter)
+        else:
+            empty_chart('O scatter exige Coral e Algae por voo, com unidades comparáveis e sem duplicatas ambíguas.')
+        insight('Cada ponto mantém a identificação do voo e a data histórica. Não representa evolução temporal nem efeito da NOAA.')
+    with right, st.container(height=PANEL_HEIGHT, border=True, key='cw-panel-composition-distribution'):
+        section_header('Distribuição de coral', 'Observações individuais quando disponíveis.', 'NASA')
+        with st.container(height=70, border=False):
+            st.caption('Amostra individual ou médias entre voos, identificadas abaixo')
+        individual = spatial[spatial.variable == 'coral'].copy() if 'variable' in spatial else pd.DataFrame()
+        if 'value' in individual:
+            individual['value'] = numeric(individual.value)
+            individual = individual.dropna(subset=['value'])
+        if not individual.empty and 'region' in individual and 'value' in individual:
+            unit = str(individual['units'].iloc[0]) if 'units' in individual else 'unidade não confirmada'
+            plot(px.box(individual, x='region', y='value', points='outliers', labels={'value': 'Coral · ' + unit, 'region': 'Região'}, color_discrete_sequence=[BENTHIC['coral']]))
+            insight('Distribuição das observações individuais válidas exportadas em spatial_observations.csv; possível subamostra regular, na unidade original.')
+        elif not coral.empty:
+            group = 'region' if 'region' in coral else 'flight_line'
+            plot(px.box(coral, x=group, y='measure', points='all', labels={'measure': coral.unit_label.iloc[0]}, color_discrete_sequence=[BENTHIC['coral']]))
+            insight('Distribuição de médias entre voos; não representa a distribuição de pixels.')
+        else:
+            empty_chart('Não há observações de coral disponíveis para esta distribuição.')
+            insight('Não reconstruímos pixels a partir de estatísticas resumidas.')
+    section_header('Dados bentônicos selecionados', 'Tabela completa e exportação dos valores filtrados.', 'NASA')
     table(b, 'reef_composition')
+
+
+def thermal_panel(noaa, key, title):
+    with st.container(height=PANEL_HEIGHT, border=True, key='cw-panel-thermal-' + key):
+        section_header(title, 'Série diária · regiões/recortes NOAA selecionados.', 'NOAA')
+        with st.container(height=70, border=False):
+            st.caption('Valores médios' if key.endswith('_mean') else 'Valores máximos')
+        if key in noaa and noaa[key].notna().any():
+            fig = px.line(noaa.sort_values('date'), x='date', y=key, color='region', markers=True,
+                          labels={key: title, 'date': 'Data observada', 'region': 'Região / recorte'})
+            if key.startswith('dhw'):
+                fig.update_traces(fill='tozeroy')
+                fig.add_hrect(y0=4, y1=8, fillcolor='#FFF06A', opacity=.04, line_width=0)
+                for threshold in (4, 8):
+                    fig.add_hline(y=threshold, line_dash='dash', line_color='#FFF06A' if threshold == 4 else '#FF4D2E', annotation_text=f'Referência: {threshold} °C-weeks')
+            plot(fig)
+            insight('DHW: referências de estresse térmico; não diagnosticam mortalidade individual.' if key.startswith('dhw') else 'Cada linha preserva seu recorte geográfico e suas datas; a janela NOAA é independente da pesquisa NASA.')
+        else:
+            empty_chart(f'{title}: coluna não disponível na fonte selecionada.')
+            insight('Ausência de dados não equivale a ausência de estresse.')
+
+
+def thermal_map(pixels):
+    with st.container(height=PANEL_HEIGHT, border=True, key='cw-panel-thermal-map'):
+        section_header('Mapa térmico · pixels recentes', 'Arquivo de pixels datados, quando disponível.', 'NOAA')
+        available = [c for c in ('sst', 'hotspot', 'dhw') if c in pixels]
+        if available:
+            metric = st.selectbox('Indicador do mapa', available, format_func=lambda c: {'sst': 'SST (°C)', 'hotspot': 'HotSpot (°C)', 'dhw': 'DHW (°C-weeks)'}[c])
+            map_chart(pixels, metric)
+            st.caption('Fonte noaa_latest_map.csv; data(s): ' + ', '.join(pixels.date.dt.strftime('%Y-%m-%d').dropna().unique()))
+        else:
+            empty_chart('Mapa térmico requer noaa_latest_map.csv com coordenadas, data e medidas. Mapas globais não respondem ao filtro regional sem região explícita.')
 
 
 def environmental(bundle, noaa, pixels):
     freshness(noaa if not noaa.empty else pixels)
     if noaa.empty:
-        if not pixels.empty:
-            st.info('Séries temporais ausentes; somente o mapa exportado está disponível.')
-            available = [c for c in ('sst', 'hotspot', 'dhw') if c in pixels]
-            if available:
-                metric = st.selectbox('Indicador do mapa', available)
-                map_chart(pixels, metric)
+        st.info('Séries temporais ausentes ou sem resultados no filtro; o mapa permanece disponível quando houver pixels datados.')
+        thermal_map(pixels)
         return
     metrics = [('sst_mean', 'SST média (°C)'), ('anomaly_mean', 'Anomalia térmica média (°C)'),
                ('dhw_mean', 'DHW médio (°C-weeks)'), ('dhw_max', 'DHW máximo (°C-weeks)'),
                ('hotspot_mean', 'HotSpot médio (°C)')]
-    for key, title in metrics:
-        if key in noaa and noaa[key].notna().any():
-            fig = px.line(noaa.sort_values('date'), x='date', y=key, color='region', markers=True,
-                          title=title, labels={key: title, 'date': 'Data observada', 'region': 'Região / recorte'})
-            if key.startswith('dhw'):
-                for threshold in (4, 8):
-                    fig.add_hline(y=threshold, line_dash='dash', annotation_text=f'{threshold} °C-weeks')
-            plot(fig)
-        elif key != 'dhw_max':
-            st.info(f'{title}: coluna não disponível na fonte selecionada.')
-    st.subheader('Indicadores · última observação por região')
-    table(recent_table(latest_by_region(noaa)), 'latest_environmental')
-    st.subheader('Mapa térmico · pixels recentes')
-    available = [c for c in ('sst', 'hotspot', 'dhw') if c in pixels]
-    if available:
-        metric = st.selectbox('Indicador do mapa', available, format_func=lambda c: {'sst': 'SST (°C)', 'hotspot': 'HotSpot (°C)', 'dhw': 'DHW (°C-weeks)'}[c])
-        map_chart(pixels, metric)
-        st.caption('Fonte noaa_latest_map.csv; data(s): ' + ', '.join(pixels.date.dt.strftime('%Y-%m-%d').dropna().unique()))
-    else:
-        st.info('Mapa térmico requer noaa_latest_map.csv com coordenadas, data e medidas. Mapas globais não respondem ao filtro regional sem região explícita.')
+    for start in (0, 2):
+        columns = st.columns(2, gap='medium')
+        for col, (key, title) in zip(columns, metrics[start:start + 2]):
+            with col:
+                thermal_panel(noaa, key, title)
+    columns = st.columns(2, gap='medium')
+    with columns[0]:
+        thermal_panel(noaa, *metrics[4])
+    with columns[1]:
+        thermal_map(pixels)
+    section_header('Indicadores · última observação por região', 'Médias e máximos são apresentados separadamente; cada região mantém sua data.', 'NOAA')
+    latest = latest_by_region(noaa)
+    for start in range(0, len(latest), 3):
+        rows = latest.iloc[start:start + 3]
+        columns = st.columns(3, gap='medium')
+        for col, (_, row) in zip(columns, rows.iterrows()):
+            with col, st.container(height=250, border=True, key=f'cw-panel-region-{start}-{row.region}'):
+                section_header(str(row.region), f'Data observada: {row.date:%Y-%m-%d}', 'NOAA')
+                for key, title in [('dhw_mean', 'DHW médio (°C-weeks)'), ('hotspot_mean', 'HotSpot médio (°C)')]:
+                    value = row.get(key)
+                    st.write(f'{title}: {value:.2f}' if pd.notna(value) else f'{title}: sem dados')
+                risk_pill('BAA máximo de 7 dias: ' + label(row.get('baa', float('nan'))), row.get('baa'))
+    table(recent_table(latest), 'latest_environmental')
+    section_header('Série temporal completa', 'Dados NOAA filtrados, preservando todas as colunas de origem.', 'NOAA')
     table(noaa, 'environmental_timeseries')
+
 
 
 def warning_page(bundle, noaa, pixels):
@@ -275,13 +298,15 @@ def warning_page(bundle, noaa, pixels):
         if not summary.empty:
             st.caption('Resumo original fornecido; sem mapa datado não é usado para contagens de alerta atual.')
             st.dataframe(summary)
-    cols = st.columns(5)
+    section_header('Bleaching Alert Area', 'BAA da fonte; unidades e datas preservadas.', 'NOAA')
+    cols = st.columns(5, gap='medium')
     for col, (code, name) in zip(cols, ALERTS.items()):
         count = int(counts.get(code, 0)) if not alerts.empty else None
-        col.metric(name, count if count is not None else '—')
-        col.markdown(f'<span style="color:{COLORS[code]}">●</span> BAA {code}', unsafe_allow_html=True)
+        detail = f'BAA {code} · máximo de sete dias'
         if count is not None and not regional:
-            col.caption(f'{100 * count / len(alerts):.1f}% dos pixels válidos')
+            detail += f' · {100 * count / len(alerts):.1f}% dos pixels válidos'
+        with col:
+            alert_card(code, name, count if count is not None else '—', detail)
     if regional:
         missing = int(latest.baa.isna().sum())
         if missing:
@@ -294,7 +319,9 @@ def warning_page(bundle, noaa, pixels):
         alerts['Interpretação'] = 'BAA fornecido pela fonte (máximo de 7 dias); HotSpot/DHW do dia são apenas contexto.'
         cols_show = [c for c in ('region', 'latitude', 'longitude', 'date', 'baa', 'Nível', 'hotspot_mean', 'hotspot_max', 'dhw_mean', 'dhw_max', 'hotspot', 'dhw', 'Interpretação') if c in alerts]
         st.caption('HotSpot: °C; DHW: °C-weeks. Sufixos _mean = média regional, _max = máximo regional; sem sufixo = valor do pixel.')
-        table(alerts[cols_show], 'early_warning')
+        section_header('Alertas por recorte', 'HotSpot: °C; DHW: °C-weeks. Contexto do dia, sem recalcular BAA.', 'NOAA')
+        table(alerts.sort_values('baa', ascending=False, na_position='last')[cols_show], 'early_warning')
+    section_header('Mapa de risco', 'BAA fornecido pela NOAA.', 'NOAA')
     if not pixels.empty:
         map_chart(pixels, 'baa', True)
     elif regional:
@@ -315,28 +342,42 @@ def warning_page(bundle, noaa, pixels):
                 table(historical, 'historical_' + name)
 
 
-def main():
-    st.set_page_config(page_title='CoralWatch', page_icon='🌊', layout='wide')
-    st.sidebar.title('CoralWatch')
-    st.sidebar.caption('Composição histórica e contexto térmico')
-    page = st.sidebar.radio('Navegação', PAGES, key='page')
-    if st.sidebar.button('Atualizar cache'):
-        st.cache_data.clear()
-    bundle = load()
-    st.title(page)
-    st.caption('CORALWATCH · NASA CORAL / NOAA CORAL REEF WATCH')
+def render_page(index):
+    bundle, cat, b, full, spatial, noaa, pixels = st.session_state['_cw_context']
+    if index == 0:
+        observed = noaa if not noaa.empty else pixels
+        date = f'{observed.date.max():%Y-%m-%d}' if not observed.empty and 'date' in observed else 'indisponível'
+        hero('CoralWatch', 'Reef Health & Thermal Stress Monitor · Última observação NOAA: ' + date)
+    else:
+        hero(PAGES[index], 'Observações científicas, contexto e fontes preservados.')
     st.info(NOTICE)
     st.caption(f'Fonte NOAA temporal: {bundle["source"]}' + (' (indisponível ou sem observações válidas).' if bundle['noaa'].empty else '.') + ' NASA: flight_catalog.csv e benthic_variable_summary.csv; fallback integrado informado na metodologia.')
     if not bundle['raw']:
         st.warning('Nenhum CSV disponível em data/processed/. Coloque os arquivos processados nessa pasta. Nenhum dado fictício é gerado.')
-    cat, b, full, spatial = nasa_filters(bundle)
-    noaa, pixels = noaa_filters(bundle)
-    if page == PAGES[0]:
+    if index == 0:
         overview(bundle, cat, b, full, spatial, noaa, pixels)
-    elif page == PAGES[1]:
+    elif index == 1:
         composition(bundle, cat, b, full, spatial)
-    elif page == PAGES[2]:
+    elif index == 2:
         environmental(bundle, noaa, pixels)
     else:
         warning_page(bundle, noaa, pixels)
+    disclaimer()
     methodology(bundle)
+
+
+def main():
+    apply_theme()
+    st.sidebar.title('🪸 CoralWatch')
+    st.sidebar.caption('Reef Health & Thermal Stress Monitor')
+    paths = ['1_Overview.py', '2_Reef_Composition.py', '3_Environmental_Monitoring.py', '4_Early_Warning.py']
+    page_dir = Path(__file__).resolve().parents[1] / 'pages'
+    navigation = st.navigation([st.Page(page_dir / path, title=title) for path, title in zip(paths, PAGES)])
+    if st.sidebar.button('Atualizar cache', width='stretch'):
+        st.cache_data.clear()
+    bundle = load_bundle()
+    # Presentation accessors reuse the existing cached loader, without processing.
+    nasa, noaa = load_nasa(bundle), load_noaa(bundle)
+    filtered = render_filters({**bundle, **nasa, **noaa})
+    st.session_state['_cw_context'] = (bundle, *filtered)
+    navigation.run()

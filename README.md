@@ -224,3 +224,16 @@ arquivos vazios, unidades, coordenadas inválidas, códigos BAA extras, invalida
 cache e isolamento dos máximos históricos. O Streamlit AppTest abre as quatro páginas
 com fontes isoladas, combinadas e filtros vazios. AppTest valida execução e widgets;
 não substitui uma inspeção visual em navegador ou uma validação científica dos dados reais.
+
+### Interface e organização visual
+
+A navegação usa `st.navigation`, com as quatro entradas em `pages/`. O tema claro,
+as cores e as dimensões ficam em `core/theme.py`; os componentes reutilizáveis em
+`core/components.py` e os filtros compartilhados em `core/filters.py`. A fachada
+`core/data.py` reutiliza o carregador científico existente de `dashboard/data.py`.
+
+Cards da mesma linha têm altura padronizada; os painéis usam 700 px e os gráficos
+Plotly, 360 px. O Overview combina mapa e indicadores em proporção 2:1; composição
+e séries térmicas usam duas colunas. Em telas estreitas, as colunas se reorganizam.
+Conteúdo adicional permanece acessível por rolagem dentro do painel. Tabelas,
+downloads, avisos científicos, datas e metodologia continuam disponíveis.
